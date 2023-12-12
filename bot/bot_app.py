@@ -22,7 +22,7 @@ if len(sys.argv) > 1 and not str(sys.argv[1]):
     with open('/tourist_bot/bot/jsfile/test.js', encoding="utf-8") as f:
         js = json.load(f)
 else:
-    with open('C:/Users/skist/PycharmProjects/tourist_bot/bot/jsfile/test.js', encoding="utf-8") as f:
+    with open('/tourist_bot/bot/jsfile/test.js', encoding="utf-8") as f:
         js = json.load(f)
 
 
