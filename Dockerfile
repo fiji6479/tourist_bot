@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируйте все файлы проекта в контейнер
 COPY . /tourist_bot
 
-ARG OC=my_default_value
+
 
 # Определите команду для запуска вашего бота
-CMD ["python", "./bot/bot_app.py", "OC"]
+CMD ["python", "./bot/bot_app.py"]
