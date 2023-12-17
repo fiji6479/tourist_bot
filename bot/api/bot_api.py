@@ -1,3 +1,5 @@
+import time
+
 from telebot import types
 from geo.geo import Points
 
@@ -16,6 +18,7 @@ class BotMessage:
 class UserSession:
 
     def __init__(self, lat, lon, distance):
+        self.timestamp = time.time()
         self.lat = lat
         self.lon = lon
         self.distance = distance
@@ -67,41 +70,44 @@ def get_next_place_button(chat_id: int):
     return BotMessage(chat_id, 'Продолжить?', reply_markup=reply_markup)
 
 
-def get_places_to_send(chat_id: int, points: Points, id_to_place_dict: dict, session: UserSession):
+def get_places_to_send(chat_id: int, id_to_place_dict: dict, session: UserSession):
     messages = []
 
     points = session.get5points()
     for key in points:
         rs = id_to_place_dict.get(key.id)
+        print(rs)
+        place_name = str(rs[1]) if rs[1] else 'достопримечательность'
+        art_type = str(rs[2]) if rs[2] else 'неизвестно'
+        web_site = str(rs[3]) if rs[3] else 'неизвестно'
 
-        place_name = str(rs[1])
+
         print(place_name)
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         messages.append(BotMessage(
             chat_id=chat_id,
-            text=f'{place_name}\n https://yandex.ru/maps/2/saint-petersburg/?text={rs[4][0]}%2C{rs[4][1]}',
-            reply_markup=markup))
+            text=f'Название: {place_name}\n Категория: {art_type}\n Веб-сайт:{web_site}\n Яндекс-карта:'+ f'[{place_name}](https://yandex.ru/maps/2/saint-petersburg/?text={rs[4][0]}%2C{rs[4][1]})',
+            reply_markup=markup, parse_mode='Markdown'))
     return messages
 
 
 
 
-def send_places(chat_id: int, points: Points, id_to_place_dict: dict, session: UserSession):
+def set_all_places_for_distance(points: Points, session: UserSession):
     print(f"distance is {session.distance}")
-    messages = []
     closest_points = points.get_closest(lat=session.lat,
                                         lon=session.lon,
                                         radius=session.distance)
     session.add_points(closest_points)
-    points = session.get5points()
-    for key in points:
-        rs = id_to_place_dict.get(key.id)
-        place_name = str(rs[1])
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        messages.append(BotMessage(
-            chat_id=chat_id,
-            text=f'{place_name}\n https://yandex.ru/maps/2/saint-petersburg/?text={rs[4][0]}%2C{rs[4][1]}',
-            reply_markup=markup))
+    # for key in points:
+    #     rs = id_to_place_dict.get(key.id)
+    #     place_name = str(rs[1])
+    #
+    #     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    #     messages.append(BotMessage(
+    #         chat_id=chat_id,
+    #         text=f'{place_name}\n https://yandex.ru/maps/2/saint-petersburg/?text={rs[4][0]}%2C{rs[4][1]}',
+    #         reply_markup=markup))
 
-    return messages
+    # return messages

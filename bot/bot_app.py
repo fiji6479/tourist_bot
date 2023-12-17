@@ -3,29 +3,21 @@ import sys
 import time
 import telebot
 import threading
-from api.bot_api import send_hello, get_request_distance_message, send_places, UserSession, get_places_to_send, \
-    get_next_place_button
+from api.bot_api import send_hello, get_request_distance_message, UserSession, \
+    get_places_to_send, \
+    get_next_place_button, set_all_places_for_distance
 from geo.geo import Points, Point
-
-
-
 
 bot = telebot.TeleBot('6620391167:AAGVt-OgRgKRvmVTjxkfgtcEN21b2NkLkTY')
 
-
-session_dict = {}
-
-
-
+session_dict: dict[str, UserSession] = {}
 
 if len(sys.argv) > 1 and not str(sys.argv[1]):
     with open('/tourist_bot/bot/jsfile/test.js', encoding="utf-8") as f:
         js = json.load(f)
 else:
-    with open('/tourist_bot/bot/jsfile/test.js', encoding="utf-8") as f:
+    with open('C:/Users/skist/PycharmProjects/tourist_bot/bot/jsfile/test.js', encoding="utf-8") as f:
         js = json.load(f)
-
-
 
 dict = {}
 point_arr = []
@@ -36,9 +28,6 @@ for e in js:
     point_arr.append(point)
 
 points = Points(point_arr)
-
-
-
 
 point_to_place = {}
 
@@ -57,18 +46,19 @@ for item in js:
 
 
 def clean_session_dict():
+    print(f'watch this:{session_dict}')
     while True:
         current_time = time.time()
         keys_to_remove = []
         for user_id, session in session_dict.items():
-            if current_time - session.timestamp > 1200:
+            if current_time - session.timestamp > 240:
                 keys_to_remove.append(user_id)
 
         for user_id in keys_to_remove:
             session_dict.pop(user_id)
 
-        time.sleep(1200)
-
+        time.sleep(240)
+    print(f'watch this:{session_dict}')
 
 # Создайте и запустите поток для очистки session_dict
 cleaning_thread = threading.Thread(target=clean_session_dict)
@@ -109,31 +99,26 @@ def get_location(message):
 def callback_inline(call):
     chat_id = call.message.chat.id
     user_id = call.from_user.id
-    session = session_dict.get(user_id)
+    session = session_dict[user_id]
     session.distance = call.data
-    messages = get_places_to_send(chat_id, points, point_to_place, session)
-    if not session.points:
-        bot.send_message(chat_id=chat_id, text="Достопримечательности в этом радиусе закончились")
-        bot_message = get_request_distance_message(chat_id)
-        bot.send_message(chat_id=bot_message.chat_id, text=bot_message.text, reply_markup=bot_message.reply_markup)
-    else:
-        for m in messages:
-            bot.send_message(
-                chat_id=m.chat_id,
-                text=m.text,
-                parse_mode=m.parse_mode
-            )
-    if not session.points:
-        bot.send_message(chat_id=chat_id, text="Достопримечательности в этом радиусе закончились")
-        bot_message = get_request_distance_message(chat_id)
-        bot.send_message(chat_id=bot_message.chat_id, text=bot_message.text, reply_markup=bot_message.reply_markup)
-    else:
+    messages = get_places_to_send(chat_id, point_to_place, session)
+
+    for m in messages:
+        bot.send_message(
+            chat_id=m.chat_id,
+            text=m.text,
+            parse_mode=m.parse_mode
+        )
+    if session.points:
         bot_message = get_next_place_button(chat_id)
         bot.send_message(chat_id=bot_message.chat_id, text=bot_message.text, reply_markup=bot_message.reply_markup)
+    else:
+        bot.send_message(chat_id=chat_id, text="Достопримечательности в этом радиусе закончились")
+        bot_message = get_request_distance_message(chat_id)
+        bot.send_message(chat_id=bot_message.chat_id, text=bot_message.text, reply_markup=bot_message.reply_markup)
 
 
-
-@bot.callback_query_handler(func=lambda callback: callback.data in ['50', '150', '250', '500'])
+@bot.callback_query_handler(func=lambda callback: callback.data in ['50', '100', '250', '500'])
 def callback_inline(call):
     print(f"received pressed btn {call}")
     chat_id = call.message.chat.id
@@ -141,24 +126,26 @@ def callback_inline(call):
     session = session_dict.get(user_id)
 
     session.distance = call.data
-    messages = send_places(chat_id, points, point_to_place, session)
-
+    set_all_places_for_distance(points, session)
+    messages = get_places_to_send(chat_id, point_to_place, session)
 
     print(f"send places {messages}")
 
-    if not messages:
-        bot.send_message(chat_id, "Достопримечательностей не найдено, поробуйте изменить радиус поиска или выбрать другую геолакацию")
-        bot_message = get_request_distance_message(chat_id)
+    for m in messages:
+        bot.send_message(
+            chat_id=m.chat_id,
+            text=m.text,
+            parse_mode=m.parse_mode
+        )
+    if session.points:
+        bot_message = get_next_place_button(chat_id)
         bot.send_message(chat_id=bot_message.chat_id, text=bot_message.text, reply_markup=bot_message.reply_markup)
     else:
-        for m in messages:
-            bot.send_message(
-                chat_id=m.chat_id,
-                text=m.text,
-                parse_mode=m.parse_mode
-            )
-        bot_message = get_next_place_button(chat_id)
+        bot.send_message(chat_id,
+                         "Достопримечательностей не найдено, поробуйте изменить радиус поиска или выбрать другую геолакацию")
+        bot_message = get_request_distance_message(chat_id)
         bot.send_message(chat_id=bot_message.chat_id, text=bot_message.text, reply_markup=bot_message.reply_markup)
 
 
 bot.polling(none_stop=True, interval=1)
+
