@@ -8,7 +8,7 @@ from api.bot_api import send_hello, get_request_distance_message, UserSession, \
     get_next_place_button, set_all_places_for_distance
 from geo.geo import Points, Point
 
-bot = telebot.TeleBot('6620391167:AAGVt-OgRgKRvmVTjxkfgtcEN21b2NkLkTY')
+bot = telebot.TeleBot('***********')
 
 session_dict: dict[str, UserSession] = {}
 
